@@ -1,6 +1,6 @@
 public class Order {
 
-    private static int ORDER_ID_COUNTER = -1;
+    private static int ORDER_ID_COUNTER = 0;
 
     final int orderId;
     final String instrument;
@@ -18,7 +18,7 @@ public class Order {
 
     @Override
     public String toString() {
-        return String.format("orderId: %d, %s, instrument: %s, quantity: %d, price: %f",
-                orderId, isBuy ? "buy" : "sell", instrument, quantity, price);
+        return String.format("orderId: %5d, %s, instrument: %s, quantity: %5d, price: %.2f\n",
+                orderId, isBuy ? " buy" : "sell", instrument, quantity, price);
     }
 }

@@ -1,10 +1,15 @@
 import java.util.*;
 
+/**
+ * Collection of (only buy or only sell) orders.
+ * Uses a binary tree on order prices to store lists of orders of that price.
+ * Leafs of this tree are stored linked such that the max/min price stored can be easily maintained.
+ * Uses a hash map on price to directly access leafs of the tree.
+ */
 public class LimitStructure {
 
     private final TreeMap<Float, Entry> tree = new TreeMap<>(Float::compareTo);
     private final HashMap<Float, OrderList> priceToList = new HashMap<>();
-    private final boolean isBuy;
 
     private final Entry head = new Entry();
     private final Entry tail = new Entry();
@@ -15,43 +20,34 @@ public class LimitStructure {
         Entry prev;
     }
 
-    LimitStructure(boolean isBuy) {
-        this.isBuy = isBuy;
+    LimitStructure() {
         head.next = tail;
         tail.prev = head;
         tree.put(Float.NEGATIVE_INFINITY, head);
         tree.put(Float.POSITIVE_INFINITY, tail);
     }
 
-    OrderList getMinPriced() {
-        return head.next.orderList;
-    }
-
-    OrderList getMaxPriced() {
-        return tail.prev.orderList;
-    }
-
-    boolean isEmpty() {
-        return head.next == tail;
-    }
-
+    /** adds an order to in O(1) time when an order of equal price is being stored, else takes O(log(n)) time */
     void addOrder(Order order) {
         OrderList orderList = priceToList.get(order.price);
         if (orderList == null) {
-            orderList = new OrderList(order.price, isBuy);
+            orderList = new OrderList();
             Entry entry = new Entry();
             entry.orderList = orderList;
-            Entry pred = tree.floorEntry(order.price).getValue();
-            entry.next = pred.next;
-            pred.next.prev = entry;
-            entry.prev = pred;
-            pred.next = entry;
+            // get the node in the linked list from the tree after which the new entry needs to be added and add it */
+            Entry prev = tree.floorEntry(order.price).getValue();
+            entry.next = prev.next;
+            prev.next.prev = entry;
+            entry.prev = prev;
+            prev.next = entry;
+            // add this new list to the hash map and tree as well
             tree.put(order.price, entry);
             priceToList.put(order.price, orderList);
         }
         orderList.addOrder(order);
     }
 
+    /** removes an order in O(1) time when after removal an order with equal price remains, else takes O(log(n)) time */
     void removeOrder(Order order) {
         OrderList orderList = priceToList.get(order.price);
         if (orderList == null) return;
@@ -63,11 +59,25 @@ public class LimitStructure {
         priceToList.remove(order.price);
     }
 
+    /** @return a list of orders that are of a minimum price in O(1) time */
+    OrderList getMinPriced() {
+        return head.next.orderList;
+    }
+
+    /** @return a list of orders that are of a maximum price in O(1) time */
+    OrderList getMaxPriced() {
+        return tail.prev.orderList;
+    }
+
+    /** @return whether this structure is not storing any orders */
+    boolean isEmpty() {
+        return head.next == tail;
+    }
+
     @Override
     public String toString() {
-        Collection<Entry> entries = isBuy ? tree.descendingMap().values() : tree.values();
         String str = "";
-        for (Entry entry : entries) if (entry != head && entry != tail) str += entry.orderList;
+        for (Entry entry = head.next; entry != tail; entry = entry.next) str += entry.orderList;
         return str;
     }
 }
